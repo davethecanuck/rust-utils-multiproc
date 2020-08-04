@@ -1,5 +1,5 @@
 [package]
-name = "threadpool"
+name = "multiproc"
 version = "0.1.0"
 authors = ["David Sutherland <davethecanuck@gmail.com>"]
 edition = "2018"

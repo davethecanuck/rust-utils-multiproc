@@ -121,7 +121,7 @@ mod tests {
             }
             // but total is popped off stack here
         } // pool goes out of scope here - threads join
-        assert_eq!(2 + 2, 4);
+        assert!(true);
     }
 }
 
