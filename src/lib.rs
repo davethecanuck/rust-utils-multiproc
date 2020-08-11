@@ -2,6 +2,7 @@ use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
+use log::{info, warn, error};
 
 type Job = Box<dyn FnOnce() + Send + 'static>;
 
@@ -38,7 +39,7 @@ impl ThreadPool {
         let job = Box::new(f);
         match self.sender.send(Message::NewJob(job)) {
             Err(e) => {
-                println!("Threadpool send of new job failed with error: {:?}.", e);
+                error!("Threadpool send of new job failed with error: {:?}.", e);
             }
             _ => (),
         }
@@ -47,23 +48,23 @@ impl ThreadPool {
 
 impl Drop for ThreadPool {
     fn drop(&mut self) {
-        println!("Sending terminate message to all workers.");
+        warn!("Sending terminate message to all workers.");
 
         for _ in &self.workers {
             match self.sender.send(Message::Terminate) {
-                Err(e) => println!("Failed to terminate worker: {}", e),
+                Err(e) => error!("Failed to terminate worker: {}", e),
                 _ => (),
             }
         }
-        println!("Shutting down all workers.");
+        warn!("Shutting down all workers.");
 
         for worker in &mut self.workers {
-            println!("Shutting down worker {}", worker.id);
+            warn!("Shutting down worker {}", worker.id);
 
             if let Some(thread) = worker.thread.take() {
                 match thread.join() {
                     Err(e) => {
-                        println!("Failed to join worker thread {}: {:?}", 
+                        error!("Failed to join worker thread {}: {:?}", 
                                  worker.id, e);
                     },
                     _ => ()
@@ -86,15 +87,15 @@ impl Worker {
             let message = receiver.lock().unwrap().recv();
             match message {
                 Ok(Message::NewJob(job)) => {
-                    println!("Worker {} got a job; executing.", id);
+                    info!("Worker {} got a job; executing.", id);
                     job();
                 }
                 Ok(Message::Terminate) => {
-                    println!("Worker {} was told to terminate.", id);
+                    info!("Worker {} was told to terminate.", id);
                     break;
                 }
                 Err(e) => {
-                    println!("Worker {} failed with error: {:?}.", id, e);
+                    error!("Worker {} failed with error: {:?}.", id, e);
                     break;
                 }
             }
@@ -116,7 +117,7 @@ mod tests {
             let pool = super::ThreadPool::new(4);
             for i in 1..5 {
                 pool.execute(move || {
-                    println!("In-thread: i={}", i);
+                    info!("In-thread: i={}", i);
                 });
             }
             // but total is popped off stack here
